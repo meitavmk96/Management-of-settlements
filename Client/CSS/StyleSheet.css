@@ -1,0 +1,205 @@
+﻿body {
+    background-color: #bfe4ff;
+    text-align: center;
+    margin: 0px auto;
+    padding: 1%;
+}
+
+#container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100vh;
+}
+
+#tableSettlement {
+    border-collapse: collapse;
+}
+
+    #tableSettlement td, #tableSettlement th {
+        border: 1px solid black;
+        padding: 10px;
+        text-align: center;
+        font-size: 18px;
+        font-weight: bold;
+        font-family: Arial, sans-serif;
+    }
+
+    #tableSettlement tr:nth-child(even) {
+        background-color: #539dec;
+    }
+    /*#37B5B6   #86B6F6*/
+
+    #tableSettlement tr:nth-child(odd) {
+        background-color: #97DECE;
+    }
+
+    #tableSettlement tr:hover {
+        background-color: #ddd;
+    }
+
+    #tableSettlement td[class="-1"] {
+        visibility: hidden;
+    }
+
+    #tableSettlement td {
+        width: 100px;
+        height: 25px;
+    }
+
+        #tableSettlement td[id] {
+            background-color: #bfe4ff;
+            border: none;
+            padding: 0px;
+        }
+
+.tableBTN {
+    background-color: #bfe4ff;
+    border: none;
+    color: #000;
+    padding: 5px 5px;
+    font-size: 16px;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+    width: auto;
+    border: 1px solid #000;
+    margin-top: 0px;
+    margin-bottom: 0px;
+}
+
+    .tableBTN:hover {
+        background-color: #f0f0f0;
+    }
+
+#searchBar {
+    margin-bottom: 10px;
+    text-align: right;
+}
+
+#searchInput {
+    direction: rtl;
+    padding: 10px;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    background-color: #f2f2f2;
+    width: 250px;
+    font-size: 16px;
+}
+
+    #searchInput:focus {
+        outline: none;
+        border-color: #539dec;
+    }
+
+button {
+    padding: 8px 16px;
+    font-size: 14px;
+    background-color: #007bff;
+    color: #fff;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    width: 120px;
+    height: 36px;
+    margin-top: 10px;
+    margin-bottom: 10px;
+}
+
+#prevBtn {
+    margin-right: 10px;
+}
+
+#nextBtn {
+    margin-left: 10px;
+}
+
+    #prevBtn:disabled, #nextBtn:disabled {
+        background-color: gray;
+        color: white;
+        cursor: not-allowed;
+    }
+
+.sortBtn {
+    background-color: transparent;
+    border: 1px solid #000;
+    cursor: pointer;
+    font-size: 16px;
+    color: #333;
+    padding: 8px 12px;
+    position: relative;
+}
+
+.arrow {
+    margin-left: 5px;
+}
+
+#addSettlementBTN {
+    white-space: nowrap;
+    width: auto;
+}
+
+
+/* עיצוב של המודל */
+.modal {
+    display: none; /* מוסיף תכונת תצוגה שלא מוצגת */
+    position: fixed; /* מייצב את המודל על העמוד */
+    z-index: 1; /* מביא את המודל לראש העמוד */
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    overflow: auto; /* מאפשר גלילה כאשר המודל גדול מהמסך */
+    background-color: rgba(0,0,0,0.4); /* עקביות שחורה עם שקיפות */
+    padding-top: 60px;
+}
+
+/* סגנון CSS לחלון המודל */
+.modal-content {
+    background-color: #fefefe;
+    margin: 5% auto; /* מרחק מהמעלה והמטה, תמקד מרכזית */
+    padding: 20px;
+    border: 1px solid #888;
+    width: 50%; /* 80% מרחב */
+    font-family: Arial, sans-serif; /* פונטים דומים לעיצוב הדף */
+}
+
+.modalBTN {
+    margin: 5px 5px;
+}
+
+/* סגנון CSS לכפתור הסגירה */
+.close {
+    color: #aaa;
+    float: right;
+    font-size: 28px;
+    font-weight: bold;
+    font-family: Arial, sans-serif; /* פונטים דומים לעיצוב הדף */
+}
+
+    .close:hover,
+    .close:focus {
+        color: black;
+        text-decoration: none;
+        cursor: pointer;
+    }
+
+#addNameInput {
+    direction: rtl;
+    padding: 5px;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    background-color: #f2f2f2;
+    width: 150px;
+    font-size: 16px;
+    margin-right: 10px;
+}
+
+    #addNameInput:focus {
+        outline: none;
+    }
+
+#existsMessage {
+    color: red;
+    font-weight: bold;
+}
