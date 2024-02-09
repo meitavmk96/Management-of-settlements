@@ -1,0 +1,479 @@
+﻿<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8" />
+    <title></title>
+
+    <!--jquery-->
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"
+            integrity="sha256-/JqT3SQfawRcv/BIHPThkBvs0OEvtFFmqPF/lYI/Cxo="
+            crossorigin="anonymous"></script>
+
+    <script src="../JS/ajaxCalls.js"></script>
+
+    <link href="../CSS/StyleSheet.css" rel="stylesheet" />
+
+    <script>
+        const ItemsInPage = 5;
+        var sortOrder = 'up';
+
+        $(document).ready(function () {
+            api = "https://localhost:7204/api/Settlements";
+            getSettlements();
+            $("#nextBtn").click(goToNext);
+            $("#prevBtn").click(goToPrevious);
+            $("#prevBtn").prop("disabled", true);
+            $("#sortBtn").click(sort);
+        })
+
+        //get
+        function getSettlements() {
+            ajaxCall("GET", api, "", getSCBF, getECBF)
+        }
+
+        function getSCBF(data) {
+            updateOriginalSettlementList(data)
+            updateTempSettlementList(data);
+            index = Math.min(ItemsInPage, data.length);
+            setIndex(index, data.length);
+            RenderGetSettlements(data);
+        }
+
+        function getECBF(err) {
+            console.log(err);
+        }
+
+        //post
+        function postSettlements() {
+            const name = $("#addNameInput").val();
+            const settlement = {
+                Name: name
+            }
+
+            ajaxCall("POST", api, JSON.stringify(settlement), postSCBF, postECBF)
+            return false;
+        }
+
+        function postSCBF(data) {
+            var modal = document.getElementById('Modal');
+            modal.style.display = "none";
+
+            //Update sessionStorage
+            var originalSettlementList = getOriginalSettlementList();
+            var tempSettlementList = getTempSettlementList();
+
+            originalSettlementList.push(data);
+            tempSettlementList.push(data);
+
+            updateOriginalSettlementList(originalSettlementList);
+            updateTempSettlementList(tempSettlementList);
+
+            sortList(tempSettlementList);
+
+            //Saving the sorted list in the temporary array in sessionStorage
+            updateTempSettlementList(tempSettlementList);
+
+            //Updating the user interface with the sorted list
+            RenderGetSettlements(tempSettlementList);
+        }
+
+        function postECBF(err) {
+            console.log(err.responseText);
+            $("#existsMessage").css("visibility", "visible");
+        }
+
+        //put
+        function updateSettlements() {
+            const name = $("#addNameInput").val();
+            var id = getId();
+            var tempSettlementList = getTempSettlementList();
+            var foundItem = tempSettlementList.find(item => item.id === id);
+            if (foundItem.name == name) {
+                $("#existsMessage").css("visibility", "visible");
+                $("#existsMessage").html("<p>אי אפשר לעדכן את אותו השם בדיוק</p>");
+                return;
+            }
+
+            const settlement = {
+                Name: name
+            }
+
+            ajaxCall("PUT", api + "/" + id, JSON.stringify(settlement), putSCBF, putECBF)
+            return false;
+        }
+
+        function putSCBF(data) {
+            var modal = document.getElementById('Modal');
+            modal.style.display = "none";
+
+            //Update sessionStorage
+            var originalSettlementList = getOriginalSettlementList();
+            var tempSettlementList = getTempSettlementList();
+
+            //Remove the old data from both lists
+            originalSettlementList = originalSettlementList.filter(function (item) {
+                return item.id !== data.id;
+            });
+            tempSettlementList = tempSettlementList.filter(function (item) {
+                return item.id !== data.id;
+            });
+
+            //Add the new data
+            originalSettlementList.push(data);
+            tempSettlementList.push(data);
+
+            updateOriginalSettlementList(originalSettlementList);
+            updateTempSettlementList(tempSettlementList);
+            //setIndex(getIndex(), tempSettlementList.length);
+
+            sortList(tempSettlementList);
+
+            //Saving the sorted list in the temporary array in sessionStorage
+            updateTempSettlementList(tempSettlementList);
+
+            //Updating the user interface with the sorted list
+            RenderGetSettlements(tempSettlementList);
+        }
+
+        function putECBF(err) {
+            console.log(err.responseText);
+            $("#existsMessage").css("visibility", "visible");
+        }
+
+        //delete
+        function deleteSettlements() {
+            var id = getId();
+            ajaxCall("DELETE", api + "/" + id, "", deleteSCBF, deleteECBF)
+        }
+
+        function deleteSCBF(id) {
+            var modal = document.getElementById('Modal');
+            modal.style.display = "none";
+
+            //Update sessionStorage
+            var originalSettlementList = getOriginalSettlementList();
+            var tempSettlementList = getTempSettlementList();
+
+            //Remove the old data from both lists
+            originalSettlementList = originalSettlementList.filter(function (item) {
+                return item.id !== id;
+            });
+            tempSettlementList = tempSettlementList.filter(function (item) {
+                return item.id !== id;
+            });
+
+            updateOriginalSettlementList(originalSettlementList);
+            updateTempSettlementList(tempSettlementList);
+
+            sortList(tempSettlementList);
+
+            //Saving the sorted list in the temporary array in sessionStorage
+            updateTempSettlementList(tempSettlementList);
+
+            //Updating the user interface with the sorted list
+            RenderGetSettlements(tempSettlementList);
+        }
+
+        function deleteECBF(err) {
+            console.log(err);
+        }
+
+        function RenderGetSettlements(data) {
+            let str = "<table>";
+            for (var i = 0; i < Math.min(ItemsInPage, data.length); i++) {
+                str += `<tr><td id="${data[i].id}delete"><button class="tableBTN" onclick="deleteModal(${data[i].id},'${data[i].name}')">מחיקה</button></td >`;
+                str += `<td id="${data[i].id}edit"><button class="tableBTN" onclick="updateModal(${data[i].id},'${data[i].name}')">עריכה</button></td >`;
+                str += `<td>${data[i].name}</td ></tr >`;
+            }
+
+            if (data.length < ItemsInPage) {
+                for (var i = 0; i < (ItemsInPage - data.length); i++) {
+                    str += `<tr><td class="-1"></td ><td class="-1"></td ></tr >`;
+                }
+            }
+            str += "</table>";
+            document.getElementById("tableSettlement").innerHTML = str;
+
+            setIndex(ItemsInPage, data.length);
+        }
+
+        function searchTable() {
+            var input = document.getElementById("searchInput");
+            var filter = input.value.toLowerCase();
+            var originalSettlementList = getOriginalSettlementList();
+
+            var newString = "";
+            for (var i = 0; i < filter.length; i++) {
+                newString = newString + getChar(filter[i]);
+            }
+            filter = newString.toUpperCase();
+
+            var searchResults = filterList(originalSettlementList, filter);
+            updateTempSettlementList(searchResults);
+
+            if (filter === "")
+                updateTempSettlementList(originalSettlementList);
+
+            RenderGetSettlements(searchResults);
+        }
+
+        function getChar(ch) {
+
+            qwertyMapping = {
+                ",": "ת", ";": "ף", ".": "ץ",
+                "a": "ש", "b": "נ", "c": "ב",
+                "d": "ג", "e": "ק", "f": "כ",
+                "g": "ע", "h": "י", "i": "ן",
+                "j": "ח", "k": "ל", "l": "ך",
+                "m": "צ", "n": "מ", "o": "ם",
+                "p": "פ", "q": "/", "r": "ר",
+                "s": "ד", "t": "א", "u": "ו",
+                "v": "ה", "w": "'", "x": "ס",
+                "y": "ט"
+            }
+
+            if (qwertyMapping[ch] == undefined) {
+                return (ch);
+            }
+            else {
+                return (qwertyMapping[ch]);
+            }
+        }
+
+        function filterList(list, filter) {
+            var searchResults = new Array();
+            for (i = 0; i < list.length; i++) {
+                txtValue = list[i].name.toUpperCase();
+                if (txtValue.indexOf(filter) > -1) {
+                    searchResults.push(list[i]);
+                }
+            }
+            return searchResults;
+        }
+
+        function goToNext() {
+            var tempSettlementList = getTempSettlementList();
+            var index = getIndex();
+
+            let str = "<table>";
+            for (var i = index; i < Math.min(index + ItemsInPage, tempSettlementList.length); i++) {
+                str += `<tr><td id="${tempSettlementList[i].id}delete"><button class="tableBTN" onclick="deleteModal(${tempSettlementList[i].id},'${tempSettlementList[i].name}')">מחיקה</button></td >`;
+                str += `<td id="${tempSettlementList[i].id}edit"><button class="tableBTN" onclick="updateModal(${tempSettlementList[i].id},'${tempSettlementList[i].name}')">עריכה</button></td >`;
+                str += `<td>${tempSettlementList[i].name}</td ></tr >`;
+            }
+
+            if ((index + ItemsInPage) >= tempSettlementList.length) {
+                for (var i = tempSettlementList.length; i < index + ItemsInPage; i++) {
+                    str += `<tr><td class="-1"></td ><td class="-1"></td ></tr >`;
+                }
+            }
+            str += "</table>";
+
+            //Updating the index
+            index += Math.min(ItemsInPage, tempSettlementList.length - index);
+            setIndex(index, tempSettlementList.length);
+
+            document.getElementById("tableSettlement").innerHTML = str;
+        }
+
+        function goToPrevious() {
+            var tempSettlementList = getTempSettlementList();
+            var index = getIndex();
+
+            //Update the index when reaching the end of the list
+            if (index % ItemsInPage == 0)
+                index -= ItemsInPage;
+            else
+                index -= index % ItemsInPage;
+
+            let str = "<table>";
+            for (var i = index - ItemsInPage; i < Math.min(index, tempSettlementList.length); i++) {
+                str += `<tr><td id="${tempSettlementList[i].id}delete"><button class="tableBTN" onclick="deleteModal(${tempSettlementList[i].id},'${tempSettlementList[i].name}')">מחיקה</button></td >`;
+                str += `<td id="${tempSettlementList[i].id}edit"><button class="tableBTN" onclick="updateModal(${tempSettlementList[i].id},'${tempSettlementList[i].name}')">עריכה</button></td >`;
+                str += `<td>${tempSettlementList[i].name}</td ></tr >`;
+            }
+            str += "</table>";
+
+            //Updating the sessionStorage
+            setIndex(index, tempSettlementList.length);
+
+            document.getElementById("tableSettlement").innerHTML = str;
+        }
+
+        function sort() {
+            var tempSettlementList = getTempSettlementList();
+            setIndex(ItemsInPage, tempSettlementList.length);
+
+            if (sortOrder === 'up') {
+                sortOrder = 'down';
+                $("#sortBtn").html("מיון יורד <span class='arrow'>&#9660;</span>");
+            } else {
+                sortOrder = 'up';
+                $("#sortBtn").text("מיון עולה");
+                $("#sortBtn").html("מיון עולה <span class='arrow'>&#9650;</span>");
+            }
+
+            sortList(tempSettlementList);
+
+            //Saving the sorted list in the temporary array in sessionStorage
+            updateTempSettlementList(tempSettlementList)
+
+            //Updating the user interface with the sorted list
+            RenderGetSettlements(tempSettlementList);
+        }
+
+        function sortList(list) {
+            list.sort(function (a, b) {
+                if (sortOrder === 'up') {
+                    return a.name.localeCompare(b.name);
+                } else {
+                    return b.name.localeCompare(a.name);
+                }
+            });
+        }
+
+        function setIndex(index, count) {
+            sessionStorage.setItem("index", index.toString());
+            updateNextPrev(index, count);
+        }
+
+        function updateNextPrev(index, count) {
+            if (index <= ItemsInPage)
+                $("#prevBtn").prop("disabled", true);
+            else
+                $("#prevBtn").prop("disabled", false);
+
+            if (index < count)
+                $("#nextBtn").prop("disabled", false);
+            else
+                $("#nextBtn").prop("disabled", true);
+        }
+
+        function updateTempSettlementList(temp) {
+            sessionStorage.setItem("TempSettlementList", JSON.stringify(temp));
+        }
+
+        function getTempSettlementList() {
+            return JSON.parse(sessionStorage.getItem('TempSettlementList'));
+        }
+
+        function updateOriginalSettlementList(original) {
+            sessionStorage.setItem("OriginalSettlementList", JSON.stringify(original));
+        }
+
+        function getOriginalSettlementList() {
+            return JSON.parse(sessionStorage.getItem('OriginalSettlementList'));
+        }
+
+        function getIndex() {
+            return JSON.parse(sessionStorage.getItem('index'));
+        }
+
+        function getId() {
+            return JSON.parse(sessionStorage.getItem('id'));
+        }
+
+    </script>
+
+    <!--Model-->
+    <script>
+        //Get the modal
+        var modal = document.getElementById('Modal');
+
+        function renderModal(title, placeholder, type) {
+            /*var str = `<form class="modal-content animate" action="/action_page.php" method="post" id="addForm">`;*/
+            var str = `<div><span onclick="closeModal()" class="close" title="Close Modal">&times;</span>`
+            if (type !== 'delete') {
+                str += `<h2>${title}</h2></div>`;
+                str += `<div><input type="text" id="addNameInput" class="input" placeholder="${placeholder}" name="uname" pattern="[A-Za-z\u0020\u0590-\u05FF\s]+" title="נא להזין אותיות בלבד" required>`;
+                str += `<label for="uname"><b>שם היישוב</b></label>`;
+                str += `<div id="existsMessage" style="visibility: hidden;"><p>היישוב כבר קיים</p></div></div>`;
+            }
+            else {
+                str += `<h2>${title}</h2></div>`;
+            }
+            str += `</div><button class="modalBTN" type="button" onclick="closeModal()">ביטול</button>`;
+            str += `<button type="submit" class="modalBTN">אישור</button></div>`;
+            str += `<div id="type" style="display: none;">${type}</div>`;
+            document.getElementById("modalContent").innerHTML = str;
+
+            document.getElementById("addForm").addEventListener("submit", function (event) {
+                event.preventDefault(); // מניעת התנהגות הפורם ברירת המחדל
+                var type = document.getElementById('type').innerHTML;
+                submitForm(type); // קריאה לפונקציה המטפלת בהזנה
+            });
+        }
+
+        function submitForm(actionType) {
+            if (actionType === 'add') {
+                postSettlements();
+            } else if (actionType === 'update') {
+                updateSettlements();
+            } else if (actionType === 'delete') {
+                deleteSettlements()
+            }
+        }
+
+        //When the user clicks anywhere outside of the modal, close it
+        window.onclick = function (event) {
+            if (event.target == modal) {
+                modal.style.display = "none";
+            }
+        }
+
+        function addModal() {
+            var modal = document.getElementById('Modal');
+            modal.style.display = "block";
+            renderModal('הוספת יישוב חדש', 'הכנס יישוב', 'add');
+        }
+
+        function closeModal() {
+            var modal = document.getElementById('Modal');
+            modal.style.display = "none";
+            document.getElementById("addNameInput").value = "";
+        }
+
+        function updateModal(id, name) {
+            sessionStorage.setItem("id", id);
+            var modal = document.getElementById('Modal');
+            modal.style.display = "block";
+            renderModal('עדכון היישוב', name, 'update');
+        }
+
+        function deleteModal(id, name) {
+            sessionStorage.setItem("id", id);
+            var modal = document.getElementById('Modal');
+            modal.style.display = "block";
+            renderModal(`האם אתה בטוח שאתה רוצה למחוק את היישוב ${name}`, name, 'delete');
+        }
+    </script>
+
+
+</head>
+<body>
+    <div id="container">
+        <div><h1>רשימת יישובים בארץ ישראל</h1></div>
+        <div id="searchBar">
+            <input type="text" id="searchInput" onkeyup="searchTable()" placeholder="חיפוש יישוב" />
+        </div>
+        <div>
+            <button id="sortBtn" class="sortBtn">מיון עולה <span id="sortArrow" class="arrow">&#9650;</span></button>
+        </div>
+        <div id="tableSettlement"></div>
+        <div>
+            <button id="prevBtn">&larr; הקודם</button>
+            <button id="nextBtn">הבא &rarr;</button>
+        </div>
+        <div>
+            <button id="addSettlementBTN" onclick="addModal()" class="btn">הוספת יישוב חדש</button>
+        </div>
+
+        <!--modal-->
+        <div id="Modal" class="modal">
+            <form class="modal-content animate" action="/action_page.php" method="post" id="addForm">
+                <div id="modalContent"></div>
+            </form>
+        </div>
+    </div>
+</body>
+</html>
